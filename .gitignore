@@ -1,0 +1,16 @@
+# ===== .NET =====
+/backend/bin/
+/backend/obj/
+/backend/*.user
+/backend/appsettings.Development.json
+/backend/appsettings.*.json
+/backend/!appsettings.json
+
+# ===== Angular =====
+frontend/node_modules/
+frontend/.angular/
+frontend/*.log
+frontend/npm-debug.log*
+
+# ===== Other =====
+.vscode/*
