@@ -20,11 +20,24 @@ public class AgentsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<AgentDto>>> GetAgents()
+    public async Task<IActionResult> GetAgents(string? search = null)
     {
-        var agents = await _context.Agents.ToListAsync();
+        var query = _context.Agents.AsQueryable();
 
-        return Ok(agents.Select(a => a.ToDto()));
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(a =>
+                a.fullName.Contains(search) ||
+                a.email.Contains(search));
+        }
+
+        var agents = await query
+            .OrderBy(a => a.fullName)
+            .ToListAsync();
+
+        var result = agents.Select(agent => agent.ToDto());
+        
+        return Ok(result);
     }
 
     [HttpGet("{id}")]

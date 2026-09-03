@@ -20,16 +20,81 @@ public class TicketsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetTickets()
+    public async Task<IActionResult> GetTickets(
+        int page = 1,
+        int pageSize = 10,
+        string? search = null,
+        Status? status = null,
+        Priority? priority = null,
+        int? assignedAgentId = null,
+        bool overdueOnly = false
+        )
     {
-        var tickets = await _context.Tickets
+        if (page < 1)
+        {
+            page = 1;
+        }
+
+        if (pageSize < 1)
+        {
+            pageSize = 10;
+        }
+
+        var query = _context.Tickets
             .Include(t => t.assignedAgent)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(t =>
+                t.referenceId.Contains(search) ||
+                t.title.Contains(search) ||
+                t.customerName.Contains(search));
+        }
+
+        if (status.HasValue)
+        {
+            query = query.Where(t => t.status == status.Value);
+        }
+
+        if (priority.HasValue)
+        {
+            query = query.Where(t => t.priority == priority.Value);
+        }
+
+        if (assignedAgentId.HasValue)
+        {
+            query = query.Where(t =>
+                t.assignedAgentId == assignedAgentId.Value);
+        }
+
+        if (overdueOnly)
+        {
+            query = query.Where(t =>
+                t.dueDate < DateTime.UtcNow &&
+                t.status != Status.Resolved &&
+                t.status != Status.Closed);
+        }
+
+        var totalCount = await query.CountAsync();
+
+        var tickets = await query
             .OrderByDescending(t => t.createdDate)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
 
         var result = tickets.Select(ToTicketDto);
 
-        return Ok(result);
+        return Ok(new
+        {
+            items = result,
+            page,
+            pageSize,
+            totalCount,
+            totalPages = (int)Math.Ceiling(
+                (double)totalCount / pageSize)
+        });
     }
 
     [HttpGet("{id}")]
@@ -37,6 +102,7 @@ public class TicketsController : ControllerBase
     {
         var ticket = await _context.Tickets
             .Include(t => t.assignedAgent)
+            .Include(t => t.comments)
             .FirstOrDefaultAsync(t => t.id == id);
 
         if (ticket == null)
@@ -494,7 +560,18 @@ public class TicketsController : ControllerBase
             isOverdue =
                 ticket.dueDate < DateTime.UtcNow &&
                 ticket.status != Status.Resolved &&
-                ticket.status != Status.Closed
+                ticket.status != Status.Closed,
+
+            comments = ticket.comments
+                .Select(comment => new CommentDto
+                {
+                    id = comment.id,
+                    ticketId = comment.ticketId,
+                    authorName = comment.authorName,
+                    body = comment.body,
+                    createdDate = comment.createdDate
+                })
+                .ToList()
         };
     }
 

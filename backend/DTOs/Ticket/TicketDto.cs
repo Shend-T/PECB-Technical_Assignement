@@ -1,5 +1,6 @@
 using backend.Models;
 using backend.DTOs.Agent;
+using backend.DTOs.Comment;
 
 namespace backend.DTOs.Ticket;
 
@@ -36,4 +37,6 @@ public class TicketDto
     public DateTime dueDate { get; set; }
 
     public bool isOverdue { get; set; }
+
+    public List<CommentDto> comments { get; set; } = new();
 }
