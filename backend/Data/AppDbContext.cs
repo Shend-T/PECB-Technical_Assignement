@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
 
     public DbSet<Agent> Agents => Set<Agent>();
     public DbSet<Ticket> Tickets => Set<Ticket>();
+    public DbSet<Comment> Comments => Set<Comment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -85,5 +86,11 @@ public class AppDbContext : DbContext
                 .HasForeignKey(t => t.assignedAgentId)
                 .OnDelete(DeleteBehavior.SetNull);
         });
+
+        modelBuilder.Entity<Comment>()
+            .HasOne(c => c.ticket)
+            .WithMany(t => t.comments)
+            .HasForeignKey(c => c.ticketId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

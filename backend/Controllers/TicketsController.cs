@@ -1,6 +1,7 @@
 using backend.Data;
 using backend.DTOs.Ticket;
 using backend.DTOs.Agent;
+using backend.DTOs.Comment;
 using backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -258,6 +259,142 @@ public class TicketsController : ControllerBase
         return Ok(ToTicketDto(result));
     }
 
+    [HttpPut("{id}/assignment")]
+    public async Task<IActionResult> AssignAgent(
+        int id,
+        AssignAgentDto dto)
+    {
+        var ticket = await _context.Tickets.FindAsync(id);
+
+        if (ticket == null)
+        {
+            return NotFound();
+        }
+
+        if (ticket.status == Status.Closed)
+        {
+            return BadRequest(new
+            {
+                message = "Nje tiket e mbyllur eshte `read-only`."
+            });
+        }
+
+        if (dto.assignedAgentId.HasValue)
+        {
+            var agent = await _context.Agents
+                .FindAsync(dto.assignedAgentId.Value);
+
+            if (agent == null)
+            {
+                return BadRequest(new
+                {
+                    message = "Agjendi selektuar nuk ekziston."
+                });
+            }
+
+            if (!agent.active)
+            {
+                return BadRequest(new
+                {
+                    message = "Nje agjend jo aktiv nuk mund te merr tiket."
+                });
+            }
+        }
+
+        ticket.assignedAgentId = dto.assignedAgentId;
+        ticket.lastModifiedDate = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(ToTicketDto(ticket));
+    }
+
+    [HttpPut("{id}/status")]
+    public async Task<IActionResult> ChangeStatus(
+        int id,
+        ChangeStatusDto dto)
+    {
+        var ticket = await _context.Tickets.FindAsync(id);
+
+        if (ticket == null)
+        {
+            return NotFound();
+        }
+
+        if (ticket.status == Status.Closed)
+        {
+            return BadRequest(new
+            {
+                message = "Nje tiket e mbyllur eshte `read-only`."
+            });
+        }
+
+        if (!Enum.IsDefined(typeof(Status), dto.status))
+        {
+            return BadRequest(new
+            {
+                message = "Statusi i zgjedhur nuk ekziston."
+            });
+        }
+
+        if (ticket.status != dto.status)
+        {
+            if (!IsValidStatusTransition(ticket.status, dto.status))
+            {
+                return BadRequest(new
+                {
+                    message =
+                        $"Status nuk mund te ndrroj nga {ticket.status} ne {dto.status}."
+                });
+            }
+        }
+
+        if (dto.status == Status.InProgress)
+        {
+            if (!ticket.assignedAgentId.HasValue)
+            {
+                return BadRequest(new
+                {
+                    message =
+                        "Nje tiket duhet te kete nje agjend para se te shkoje ne `In Progress`."
+                });
+            }
+
+            var agent = await _context.Agents
+                .FindAsync(ticket.assignedAgentId.Value);
+
+            if (agent == null || !agent.active)
+            {
+                return BadRequest(new
+                {
+                    message =
+                        "Nje tiket nuk mund te kaloj ne `In Progress` nese agjendi saj eshte jo aktiv."
+                });
+            }
+        }
+
+        var oldStatus = ticket.status;
+
+        ticket.status = dto.status;
+        ticket.lastModifiedDate = DateTime.UtcNow;
+
+        if (oldStatus != Status.Resolved &&
+            ticket.status == Status.Resolved)
+        {
+            ticket.resolvedDate = DateTime.UtcNow;
+        }
+
+        if (oldStatus != Status.Closed &&
+            ticket.status == Status.Closed)
+        {
+            ticket.closedDate = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+
+        return Ok(ToTicketDto(ticket));
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteTicket(int id)
     {
@@ -359,5 +496,81 @@ public class TicketsController : ControllerBase
                 ticket.status != Status.Resolved &&
                 ticket.status != Status.Closed
         };
+    }
+
+    // Komentet, po i qes ktu endpoint-et, pasi qe pershkak te kohes se shkurte po mundohem pjesen kryesore ta perfundoj sa me shpejt, dhe se komentet varen nga tiketat
+    [HttpGet("{id}/comments")]
+    public async Task<IActionResult> GetComments(int id)
+    {
+        var ticketExists = await _context.Tickets
+            .AnyAsync(t => t.id == id);
+
+        if (!ticketExists)
+        {
+            return NotFound();
+        }
+
+        var comments = await _context.Comments
+            .Where(c => c.ticketId == id)
+            .OrderBy(c => c.createdDate)
+            .Select(c => new CommentDto
+            {
+                id = c.id,
+                ticketId = c.ticketId,
+                authorName = c.authorName,
+                body = c.body,
+                createdDate = c.createdDate
+            })
+            .ToListAsync();
+
+        return Ok(comments);
+    }
+
+    [HttpPost("{id}/comments")]
+    public async Task<IActionResult> AddComment(
+        int id,
+        CreateCommentDto dto)
+    {
+        var ticket = await _context.Tickets.FindAsync(id);
+
+        if (ticket == null)
+        {
+            return NotFound();
+        }
+
+        if (ticket.status == Status.Closed)
+        {
+            return BadRequest(new
+            {
+                message = "Nje tiket e mbyllur nuk mund t'merr komente te reja."
+            });
+        }
+
+        var comment = new Comment
+        {
+            ticketId = id,
+            authorName = dto.authorName,
+            body = dto.body,
+            createdDate = DateTime.UtcNow
+        };
+
+        _context.Comments.Add(comment);
+
+        await _context.SaveChangesAsync();
+
+        var result = new CommentDto
+        {
+            id = comment.id,
+            ticketId = comment.ticketId,
+            authorName = comment.authorName,
+            body = comment.body,
+            createdDate = comment.createdDate
+        };
+
+        return CreatedAtAction(
+            nameof(GetComments),
+            new { id },
+            result
+        );
     }
 }

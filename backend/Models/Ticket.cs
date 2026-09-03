@@ -20,4 +20,6 @@ public class Ticket
     public DateTime? resolvedDate { get; set; }     = null;
     public DateTime? closedDate { get; set; }       = null;
     public DateTime dueDate { get; set; }
+
+    public ICollection<Comment> comments { get; set; } = new List<Comment>();
 }
