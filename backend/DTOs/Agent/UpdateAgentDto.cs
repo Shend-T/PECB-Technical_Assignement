@@ -3,7 +3,7 @@ using backend.Models;
 
 namespace backend.DTOs.Agent;
 
-public class CreateAgentDto
+public class UpdateAgentDto
 {
     [Required]
     [StringLength(100)]

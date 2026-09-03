@@ -1,6 +1,7 @@
 using backend.Data;
 using backend.Models;
 using backend.DTOs.Agent;
+using backend.Mappings;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -19,11 +20,24 @@ public class AgentsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAgents()
+    public async Task<ActionResult<IEnumerable<AgentDto>>> GetAgents()
     {
         var agents = await _context.Agents.ToListAsync();
 
-        return Ok(agents);
+        return Ok(agents.Select(a => a.ToDto()));
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<AgentDto>> GetAgent(int id)
+    {
+        var agent = await _context.Agents.FindAsync(id);
+
+        if (agent == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(agent.ToDto());
     }
     
     [HttpPost]
@@ -63,5 +77,59 @@ public class AgentsController : ControllerBase
             new { id = agent.id },
             agent
         );
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateAgent(int id, UpdateAgentDto dto)
+    {
+        var agent = await _context.Agents.FindAsync(id);
+
+        if (agent == null)
+        {
+            return BadRequest(new { message = "Agjendi nuk u gjet!" });
+        }
+
+        var emailExists = await _context.Agents
+            .AnyAsync(a => a.email == dto.email && a.id != id);
+        
+        if (emailExists)
+        {
+            return Conflict(new {
+                message = "A different agent with this email already exists! ( Nje agjend tjeter me kete email vetem se ekziston!)"
+            });
+        }
+
+        if (!Enum.IsDefined(typeof(Department), dto.department))
+        {
+            return BadRequest(new
+            {
+                message = "Invalid department! ( Departament jo valid!)"
+            });
+        }
+
+        agent.fullName = dto.fullName;
+        agent.email = dto.email;
+        agent.department = dto.department;
+        agent.active = dto.active;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(agent.ToDto());
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteAgent(int id)
+    {
+        var agent = await _context.Agents.FindAsync(id);
+
+        if (agent == null)
+        {
+            return NotFound();
+        }
+
+        _context.Agents.Remove(agent);
+        await _context.SaveChangesAsync();
+
+        return NoContent();
     }
 }

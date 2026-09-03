@@ -2,7 +2,7 @@ import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 import { Ping } from './core/ping';
-import { Agents, Agent, CreateAgent } from './core/agents';
+import { AgentsService, Agent, CreateAgent } from './core/agents';
 
 @Component({
   selector: 'app-root',
@@ -19,7 +19,7 @@ export class App {
 
   constructor(
     private ping: Ping,
-    private agents: Agents,
+    private agents: AgentsService,
   ) {}
 
   testConnection() {

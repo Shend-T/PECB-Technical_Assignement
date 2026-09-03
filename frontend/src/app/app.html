@@ -1,19 +1,1 @@
-<button (click)="testConnection()">Test</button>
-
-<button (click)="createAgent()">Krijo Agjend</button>
-
-<p>{{ message }}</p>
-
-<h2>Agjendet</h2>
-<button (click)="getAgents()">Merr Agjendet</button>
-
-<ul>
-  @for (agent of agentsList; track agent.id) {
-    <li>
-      {{ agent.fullName }} — {{ agent.email }} — {{ agent.department }} —
-      {{ agent.active ? 'Active' : 'Inactive' }}
-    </li>
-  }
-</ul>
-
 <router-outlet />

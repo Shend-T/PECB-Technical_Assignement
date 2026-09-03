@@ -20,7 +20,7 @@ export interface CreateAgent {
 @Injectable({
   providedIn: 'root',
 })
-export class Agents {
+export class AgentsService {
   private apiUrl = 'http://localhost:5048/api/agents';
 
   constructor(private http: HttpClient) {}

@@ -1,0 +1,25 @@
+<h1>Agents Section</h1>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Email</th>
+      <th>Department</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    @for (agent of agentsList; track agent.id) {
+      <tr>
+        <td>{{ agent.fullName }}</td>
+        <td>{{ agent.email }}</td>
+        <td>{{ agent.department }}</td>
+        <td>
+          {{ agent.active ? 'Active' : 'Inactive' }}
+        </td>
+      </tr>
+    }
+  </tbody>
+</table>
