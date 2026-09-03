@@ -1,0 +1,363 @@
+using backend.Data;
+using backend.DTOs.Ticket;
+using backend.DTOs.Agent;
+using backend.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+namespace backend.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class TicketsController : ControllerBase
+{
+    private readonly AppDbContext _context;
+
+    public TicketsController(AppDbContext context)
+    {
+        _context = context;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetTickets()
+    {
+        var tickets = await _context.Tickets
+            .Include(t => t.assignedAgent)
+            .OrderByDescending(t => t.createdDate)
+            .ToListAsync();
+
+        var result = tickets.Select(ToTicketDto);
+
+        return Ok(result);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetTicket(int id)
+    {
+        var ticket = await _context.Tickets
+            .Include(t => t.assignedAgent)
+            .FirstOrDefaultAsync(t => t.id == id);
+
+        if (ticket == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(ToTicketDto(ticket));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateTicket(CreateTicketDto dto)
+    {
+        if (!Enum.IsDefined(typeof(Priority), dto.priority))
+        {
+            return BadRequest(new
+            {
+                message = "Prioritet gabim."
+            });
+        }
+
+        if (dto.assignedAgentId.HasValue)
+        {
+            var agent = await _context.Agents
+                .FindAsync(dto.assignedAgentId.Value);
+
+            if (agent == null)
+            {
+                return BadRequest(new
+                {
+                    message = "Agjendi i zgjedhur nuk ekziston."
+                });
+            }
+
+            if (!agent.active)
+            {
+                return BadRequest(new
+                {
+                    message = "Nje agjend jo aktiv nuk mund ti jepet nje tiket."
+                });
+            }
+        }
+
+        var createdDate = DateTime.UtcNow;
+
+        var ticket = new Ticket
+        {
+            title = dto.title,
+            description = dto.description,
+            customerName = dto.customerName,
+            customerEmail = dto.customerEmail,
+
+            priority = dto.priority,
+            status = Status.New,
+
+            assignedAgentId = dto.assignedAgentId,
+
+            createdDate = createdDate,
+            lastModifiedDate = createdDate,
+
+            dueDate = CalculateDueDate(dto.priority, createdDate)
+        };
+
+        _context.Tickets.Add(ticket);
+
+        await _context.SaveChangesAsync();
+
+        ticket.referenceId =
+            $"TCK-{ticket.createdDate.Year}-{ticket.id:D4}";
+
+        await _context.SaveChangesAsync();
+
+        var result = await _context.Tickets
+            .Include(t => t.assignedAgent)
+            .FirstAsync(t => t.id == ticket.id);
+
+        return CreatedAtAction(
+            nameof(GetTicket),
+            new { id = ticket.id },
+            ToTicketDto(result)
+        );
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateTicket(
+        int id,
+        UpdateTicketDto dto)
+    {
+        var ticket = await _context.Tickets
+            .Include(t => t.assignedAgent)
+            .FirstOrDefaultAsync(t => t.id == id);
+
+        if (ticket == null)
+        {
+            return NotFound();
+        }
+
+        if (ticket.status == Status.Closed)
+        {
+            return BadRequest(new
+            {
+                message = "Nje tiket e mbyller eshte `read-only`."
+            });
+        }
+
+        if (!Enum.IsDefined(typeof(Priority), dto.priority))
+        {
+            return BadRequest(new
+            {
+                message = "Prioritet gabim."
+            });
+        }
+
+        if (!Enum.IsDefined(typeof(Status), dto.status))
+        {
+            return BadRequest(new
+            {
+                message = "Status gabim."
+            });
+        }
+
+        if (dto.assignedAgentId.HasValue)
+        {
+            var agent = await _context.Agents
+                .FindAsync(dto.assignedAgentId.Value);
+
+            if (agent == null)
+            {
+                return BadRequest(new
+                {
+                    message = "Agjendi qe po kerkoni nuk ekziston."
+                });
+            }
+
+            if (!agent.active)
+            {
+                return BadRequest(new
+                {
+                    message = "Nje agjend jo-aktiv nuk mund t'i qaset tiketave."
+                });
+            }
+        }
+
+        if (ticket.status != dto.status)
+        {
+            if (!IsValidStatusTransition(ticket.status, dto.status))
+            {
+                return BadRequest(new
+                {
+                    message =
+                        $"Statusi nuk mund te kaloj nga: {ticket.status} ne {dto.status}."
+                });
+            }
+        }
+
+        if (dto.status == Status.InProgress)
+        {
+            if (!dto.assignedAgentId.HasValue)
+            {
+                return BadRequest(new
+                {
+                    message =
+                        "Nje tiket duhet te kete nje agjend per te kaluar ne `In Progress`."
+                });
+            }
+
+            var assignedAgent = await _context.Agents
+                .FindAsync(dto.assignedAgentId.Value);
+
+            if (assignedAgent == null || !assignedAgent.active)
+            {
+                return BadRequest(new
+                {
+                    message =
+                        "Nje tiket nuk mund t'kaloj ne In Progress nese agjendi nuk eshte aktiv."
+                });
+            }
+        }
+
+        var oldPriority = ticket.priority;
+        var oldStatus = ticket.status;
+
+        ticket.title = dto.title;
+        ticket.description = dto.description;
+        ticket.customerName = dto.customerName;
+        ticket.customerEmail = dto.customerEmail;
+        ticket.priority = dto.priority;
+        ticket.assignedAgentId = dto.assignedAgentId;
+
+        ticket.status = dto.status;
+
+        ticket.lastModifiedDate = DateTime.UtcNow;
+
+        if (oldPriority != ticket.priority)
+        {
+            ticket.dueDate = CalculateDueDate(
+                ticket.priority,
+                ticket.createdDate
+            );
+        }
+
+        if (oldStatus != Status.Resolved &&
+            ticket.status == Status.Resolved)
+        {
+            ticket.resolvedDate = DateTime.UtcNow;
+        }
+
+        if (oldStatus != Status.Closed &&
+            ticket.status == Status.Closed)
+        {
+            ticket.closedDate = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+
+        var result = await _context.Tickets
+            .Include(t => t.assignedAgent)
+            .FirstAsync(t => t.id == ticket.id);
+
+        return Ok(ToTicketDto(result));
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteTicket(int id)
+    {
+        var ticket = await _context.Tickets.FindAsync(id);
+
+        if (ticket == null)
+        {
+            return NotFound();
+        }
+
+        if (ticket.status == Status.Closed)
+        {
+            return BadRequest(new
+            {
+                message = "Nje tiket e mbyllur eshte `read-only` nuk mund te fshihet."
+            });
+        }
+
+        _context.Tickets.Remove(ticket);
+
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    private static bool IsValidStatusTransition(
+        Status current,
+        Status requested)
+    {
+        return (current, requested) switch
+        {
+            (Status.New, Status.InProgress) => true,
+
+            (Status.InProgress, Status.Resolved) => true,
+
+            (Status.Resolved, Status.Closed) => true,
+
+            (Status.Resolved, Status.InProgress) => true,
+
+            _ => false
+        };
+    }
+
+    private static DateTime CalculateDueDate(
+        Priority priority,
+        DateTime createdDate)
+    {
+        return priority switch
+        {
+            Priority.Critical => createdDate.AddHours(4),
+            Priority.High => createdDate.AddDays(1),
+            Priority.Normal => createdDate.AddDays(3),
+            Priority.Low => createdDate.AddDays(7),
+
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(priority),
+                priority,
+                "Prioritet Gabim.")
+        };
+    }
+
+    private static TicketDto ToTicketDto(Ticket ticket)
+    {
+        return new TicketDto
+        {
+            id          = ticket.id,
+            referenceId = ticket.referenceId,
+
+            title       = ticket.title,
+            description = ticket.description,
+
+            customerName = ticket.customerName,
+            customerEmail = ticket.customerEmail,
+
+            priority = ticket.priority,
+            status   = ticket.status,
+
+            assignedAgentId = ticket.assignedAgentId,
+
+            assignedAgent = ticket.assignedAgent == null
+                ? null
+                : new AgentDto
+                {
+                    id = ticket.assignedAgent.id,
+                    fullName = ticket.assignedAgent.fullName,
+                    email = ticket.assignedAgent.email,
+                    department = ticket.assignedAgent.department,
+                    active = ticket.assignedAgent.active
+                },
+
+            createdDate      = ticket.createdDate,
+            lastModifiedDate = ticket.lastModifiedDate,
+            resolvedDate     = ticket.resolvedDate,
+            closedDate       = ticket.closedDate,
+            dueDate          = ticket.dueDate,
+
+            isOverdue =
+                ticket.dueDate < DateTime.UtcNow &&
+                ticket.status != Status.Resolved &&
+                ticket.status != Status.Closed
+        };
+    }
+}
