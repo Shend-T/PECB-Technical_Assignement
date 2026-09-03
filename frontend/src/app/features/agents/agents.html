@@ -1,25 +1,97 @@
-<h1>Agents Section</h1>
+<div class="px-4 py-5 my-5 text-center">
+  <h1 class="display-5 fw-bold mb-5 pb-5">Agents Section</h1>
 
-<table class="table">
-  <thead>
-    <tr>
-      <th>Name</th>
-      <th>Email</th>
-      <th>Department</th>
-      <th>Status</th>
-    </tr>
-  </thead>
+  <div class="table-responsive d-flex justify-content-center mt-5">
+    <table class="table w-75 align-middle">
+      <thead class="table-head">
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Department</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
 
-  <tbody>
-    @for (agent of agentsList; track agent.id) {
-      <tr>
-        <td>{{ agent.fullName }}</td>
-        <td>{{ agent.email }}</td>
-        <td>{{ agent.department }}</td>
-        <td>
-          {{ agent.active ? 'Active' : 'Inactive' }}
-        </td>
-      </tr>
-    }
-  </tbody>
-</table>
+      <tbody class="table-body">
+        @for (agent of agentsList; track agent.id) {
+          <tr>
+            <td>{{ agent.fullName }}</td>
+            <td>{{ agent.email }}</td>
+            <td>{{ agent.department }}</td>
+            <td>
+              {{ agent.active ? 'Active' : 'Inactive' }}
+            </td>
+            <td class="text-nowrap" style="width: 120px">
+              <button class="btn btn-warning btn-lg p-2 m-1" (click)="updateAgentForm(agent)">
+                Update
+              </button>
+              <button class="btn btn-danger btn-lg p-2 m-1" (click)="deleteAgent(agent.id)">
+                Delete
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <h1 class="display-5 fw-bold my-5 py-5">{{ agentId === null ? 'Create' : 'Update' }} Agent?</h1>
+  <div class="w-75 mx-auto mb-5">
+    <form
+      [formGroup]="agentForm"
+      (ngSubmit)="submitForm()"
+      class="mx-auto fs-5"
+      style="max-width: 700px"
+    >
+      <div class="mb-4">
+        <label class="form-label">Full Name</label>
+        <input
+          type="text"
+          class="form-control form-control-lg px-3"
+          formControlName="fullName"
+          placeholder="Test test"
+        />
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label">Email</label>
+        <input
+          type="email"
+          class="form-control form-control-lg px-3"
+          formControlName="email"
+          placeholder="test@test.com"
+        />
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label">Department</label>
+        <select class="form-select form-select-lg px-3" formControlName="department">
+          <option value="General">General</option>
+          <option value="Technical">Technical</option>
+          <option value="Billing">Billing</option>
+        </select>
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label">Status</label>
+        <select class="form-select form-select-lg px-3" formControlName="active">
+          <option [ngValue]="true">Active</option>
+          <option [ngValue]="false">Inactive</option>
+        </select>
+      </div>
+
+      <button
+        type="submit"
+        class="btn btn-lg p-2"
+        [class.btn-success]="agentId === null"
+        [class.btn-warning]="agentId !== null"
+      >
+        {{ agentId === null ? 'Create Agent' : 'Update Agent' }}
+      </button>
+    </form>
+    <button class="btn btn-lg btn-info mt-5 p-2" style="color: white" (click)="resetForm()">
+      Reset Form
+    </button>
+  </div>
+</div>

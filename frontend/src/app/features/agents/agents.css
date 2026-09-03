@@ -1,0 +1,8 @@
+.table-head {
+  letter-spacing: 0.7px;
+  font-size: clamp(1.3rem, 3vw, 1.7rem);
+}
+.table-body {
+  letter-spacing: 0.5px;
+  font-size: clamp(1rem, 3vw, 1.5rem);
+}

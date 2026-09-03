@@ -17,6 +17,13 @@ export interface CreateAgent {
   active: boolean;
 }
 
+export interface UpdateAgent {
+  fullName: string;
+  email: string;
+  department: 'General' | 'Technical' | 'Billing';
+  active: boolean;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -29,7 +36,19 @@ export class AgentsService {
     return this.http.get<Agent[]>(this.apiUrl);
   }
 
+  getAgent(id: number): Observable<Agent> {
+    return this.http.get<Agent>(`${this.apiUrl}/${id}`);
+  }
+
   createAgent(agent: CreateAgent): Observable<Agent> {
     return this.http.post<Agent>(this.apiUrl, agent);
+  }
+
+  updateAgent(id: number, agent: UpdateAgent): Observable<Agent> {
+    return this.http.put<Agent>(`${this.apiUrl}/${id}`, agent);
+  }
+
+  deleteAgent(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 }
