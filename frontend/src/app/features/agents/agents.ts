@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectorRef } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 
 import { AgentsService, Agent, CreateAgent, UpdateAgent } from '../../core/agents';
@@ -16,6 +16,7 @@ export class Agents {
 
   constructor(
     private agentsService: AgentsService,
+    private cdr: ChangeDetectorRef,
     private formBuilder: FormBuilder,
   ) {
     this.agentForm = this.formBuilder.group({
@@ -32,10 +33,10 @@ export class Agents {
     this.loadAgents();
   }
   loadAgents() {
-    console.log(2);
     this.agentsService.getAgents().subscribe({
       next: (agents) => {
         this.agentsList = agents;
+        this.cdr.detectChanges();
         console.log(this.agentsList);
       },
       error: (error) => {
