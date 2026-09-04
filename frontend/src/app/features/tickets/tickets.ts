@@ -37,8 +37,8 @@ export class Tickets {
   }
   loadTickets() {
     this.ticketsService.getTickets().subscribe({
-      next: (tickets) => {
-        this.ticketsList = tickets;
+      next: (response) => {
+        this.ticketsList = response.items;
         this.cdr.detectChanges();
       },
       error: (error) => {

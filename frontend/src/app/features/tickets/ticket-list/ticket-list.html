@@ -1,0 +1,168 @@
+<div class="px-4 py-5 my-5 text-center">
+  <div class="display-5 fw-bold mb-5 pb-5">
+    <h2>Tiketat</h2>
+
+    @if (errorMessage) {
+      <div class="alert alert-danger">
+        <h5>{{ errorMessage }}</h5>
+      </div>
+    }
+  </div>
+
+  <div class="card p-3 mb-5 fs-5">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Search</label>
+
+        <input
+          type="text"
+          class="form-control"
+          [(ngModel)]="search"
+          (ngModelChange)="onSearchChange()"
+          placeholder="Reference, title, or customer name"
+        />
+      </div>
+
+      <div class="col-md-2">
+        <label class="form-label">Status</label>
+
+        <select class="form-select" [(ngModel)]="status">
+          <option value="">All</option>
+          <option value="New">New</option>
+          <option value="InProgress">In Progress</option>
+          <option value="Resolved">Resolved</option>
+          <option value="Closed">Closed</option>
+        </select>
+      </div>
+
+      <div class="col-md-2">
+        <label class="form-label">Priority</label>
+
+        <select class="form-select" [(ngModel)]="priority">
+          <option value="">All</option>
+          <option value="Critical">Critical</option>
+          <option value="High">High</option>
+          <option value="Normal">Normal</option>
+          <option value="Low">Low</option>
+        </select>
+      </div>
+
+      <div class="col-md-2">
+        <label class="form-label">Assigned Agent</label>
+
+        <select class="form-select" [(ngModel)]="assignedAgentId" (change)="searchTickets()">
+          <option [ngValue]="null">All agents</option>
+
+          @for (agent of agents; track agent.id) {
+            <option [ngValue]="agent.id">
+              {{ agent.fullName }}
+            </option>
+          }
+        </select>
+      </div>
+
+      <div class="col-md-2 d-flex align-items-end">
+        <div class="form-check">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            [(ngModel)]="overdueOnly"
+            id="overdueOnly"
+          />
+
+          <label class="form-check-label" for="overdueOnly"> Overdue only </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-3">
+      <button class="btn btn-primary px-3 py-2 fs-5" (click)="searchTickets()">Search</button>
+
+      <button class="btn btn-secondary px-3 py-2 fs-5 mx-4" (click)="clearFilters()">Clear</button>
+    </div>
+  </div>
+
+  <div class="table-responsive mt-5">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr>
+          <th>Reference</th>
+          <th>Title</th>
+          <th>Customer</th>
+          <th>Priority</th>
+          <th>Status</th>
+          <th>Assigned Agent</th>
+          <th>Due Date</th>
+          <th>Is Overdue</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        @for (ticket of ticketsList; track ticket.id) {
+          <tr [class.table-danger]="ticket.isOverdue">
+            <td>
+              {{ ticket.referenceId }}
+            </td>
+
+            <td>
+              {{ ticket.title }}
+            </td>
+
+            <td>
+              <div>{{ ticket.customerName }}</div>
+              <small class="text-muted my-1">
+                {{ ticket.customerEmail }}
+              </small>
+            </td>
+
+            <td>
+              {{ ticket.priority }}
+            </td>
+
+            <td>
+              {{ ticket.status }}
+            </td>
+
+            <td>
+              @if (ticket.assignedAgent) {
+                Id: {{ ticket.assignedAgentId }} FullName: {{ ticket.assignedAgent.fullName }}
+              } @else {
+                Unassigned
+              }
+            </td>
+
+            <td>
+              {{ ticket.dueDate | date: 'null' }}
+            </td>
+            <td>
+              @if (ticket.isOverdue) {
+                <div class="text-danger fw-bold">Overdue</div>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <nav class="mt-4">
+    <p class="mb-3" style="font-size: 1.4rem">Pagination</p>
+    <ul class="pagination justify-content-center">
+      <li class="page-item" [class.disabled]="page === 1">
+        <button class="page-link px-4 py-1 fs-5" (click)="goToPage(page - 1)">Previous</button>
+      </li>
+
+      @for (pageNumber of [].constructor(totalPages); track $index) {
+        <li class="page-item" [class.active]="page === $index + 1">
+          <button class="page-link px-4 py-1 fs-5" (click)="goToPage($index + 1)">
+            {{ $index + 1 }}
+          </button>
+        </li>
+      }
+
+      <li class="page-item" [class.disabled]="page === totalPages">
+        <button class="page-link px-4 py-1 fs-5" (click)="goToPage(page + 1)">Next</button>
+      </li>
+    </ul>
+  </nav>
+</div>

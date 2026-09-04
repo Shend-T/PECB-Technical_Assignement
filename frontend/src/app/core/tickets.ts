@@ -51,6 +51,14 @@ export interface UpdateTicket {
   assignedAgentId: number | null;
 }
 
+export interface TicketListResponse {
+  items: Ticket[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -59,8 +67,41 @@ export class TicketsService {
 
   constructor(private http: HttpClient) {}
 
-  getTickets(): Observable<Ticket[]> {
-    return this.http.get<Ticket[]>(this.apiUrl);
+  getTickets(
+    page = 1,
+    pageSize = 10,
+    search = '',
+    status = '',
+    priority = '',
+    assignedAgentId: number | null = null,
+    overdueOnly = false,
+  ): Observable<TicketListResponse> {
+    const params: any = {
+      page,
+      pageSize,
+    };
+
+    if (search) {
+      params.search = search;
+    }
+
+    if (status) {
+      params.status = status;
+    }
+
+    if (priority) {
+      params.priority = priority;
+    }
+
+    if (assignedAgentId !== null) {
+      params.assignedAgentId = assignedAgentId;
+    }
+
+    if (overdueOnly) {
+      params.overdueOnly = true;
+    }
+
+    return this.http.get<TicketListResponse>(this.apiUrl, { params });
   }
 
   getTicket(id: number): Observable<Ticket> {
