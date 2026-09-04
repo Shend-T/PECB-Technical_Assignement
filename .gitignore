@@ -6,6 +6,9 @@
 /backend/appsettings.*.json
 /backend/!appsettings.json
 
+/backend.Tests/bin/
+/backend.Tests/obj/
+
 # ===== Angular =====
 frontend/node_modules/
 frontend/.angular/
