@@ -1,12 +1,11 @@
 import { Component, ChangeDetectorRef } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 
 import { TicketsService, Ticket, CreateTicket, UpdateTicket } from '../../core/tickets';
 
 @Component({
   selector: 'app-tickets',
-  imports: [ReactiveFormsModule, DatePipe],
+  imports: [ReactiveFormsModule],
   templateUrl: './tickets.html',
   styleUrl: './tickets.css',
 })

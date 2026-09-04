@@ -1,1 +1,239 @@
-<p>ticket-detail works!</p>
+<div class="container mt-4 fs-4 mb-5">
+  @if (errorMessage) {
+    <div class="alert alert-danger">
+      {{ errorMessage }}
+    </div>
+  }
+
+  @if (ticket) {
+    <div>
+      <h2>Ref: {{ ticket.referenceId }}</h2>
+      <h4>Title: {{ ticket.title }}</h4>
+    </div>
+
+    @if (ticket.isOverdue) {
+      <span class="badge bg-danger fs-6"> Overdue </span>
+    }
+
+    <hr />
+
+    <p class="mb-0">Desc: {{ ticket.description }}</p>
+
+    <p>
+      <strong>Customer:</strong>
+      Name: {{ ticket.customerName }} Email: {{ ticket.customerEmail }}
+    </p>
+
+    <p>Status: {{ ticket.status }}</p>
+
+    <p>Priority: {{ ticket.priority }}</p>
+
+    <strong>Assigned Agent:</strong>
+
+    @if (ticket.assignedAgent) {
+      <p>FullName: {{ ticket.assignedAgent.fullName }}</p>
+      <p>Email: {{ ticket.assignedAgent.email }}</p>
+    } @else {
+      <div class="text-muted">Unassigned</div>
+    }
+
+    <div class="col-md-6">
+      <strong>Due Date</strong>
+      <div>
+        {{ ticket.dueDate | date: 'medium' }}
+      </div>
+
+      @if (ticket.isOverdue) {
+        <small class="text-danger fw-bold">Ticket is overdue. </small>
+      }
+    </div>
+
+    <strong>Created</strong>
+    <div>
+      {{ ticket.createdDate | date: 'medium' }}
+    </div>
+
+    <strong>Last Modified</strong>
+    <div>
+      {{ ticket.lastModifiedDate | date: 'medium' }}
+    </div>
+
+    <strong>Resolved</strong>
+
+    @if (ticket.resolvedDate) {
+      <div>
+        {{ ticket.resolvedDate | date: 'medium' }}
+      </div>
+    } @else {
+      <div class="text-muted">Not resolved</div>
+    }
+
+    <strong>Is Closed?</strong>
+
+    @if (ticket.closedDate) {
+      <div>
+        {{ ticket.closedDate | date: 'medium' }}
+      </div>
+    } @else {
+      <div class="text-muted">Not closed</div>
+    }
+
+    <div class="card my-4">
+      <div class="card-body">
+        <h4 class="card-title mt-4">Status</h4>
+
+        @if (statusError) {
+          <div class="alert alert-danger">
+            {{ statusError }}
+          </div>
+        }
+
+        @if (ticket.status === 'New') {
+          <button class="btn btn-primary btn-lg px-3 py-2" (click)="changeStatus('InProgress')">
+            Start Progress
+          </button>
+        }
+
+        @if (ticket.status === 'InProgress') {
+          <button
+            class="btn btn-success btn-lg px-3 py-2"
+            (click)="changeStatus('Resolved')"
+            [disabled]="!ticket.assignedAgentId"
+          >
+            Resolve Ticket
+          </button>
+
+          @if (!ticket.assignedAgentId) {
+            <div class="text-danger mt-2">Nje agjend aktiv duhet perkushtuar tiketes.</div>
+          }
+        }
+
+        @if (ticket.status === 'Resolved') {
+          <button
+            class="btn btn-warning btn-lg px-3 py-2 me-2"
+            (click)="changeStatus('InProgress')"
+          >
+            Reopen
+          </button>
+
+          <button class="btn btn-success btn-lg px-3 py-2" (click)="changeStatus('Closed')">
+            Close Ticket
+          </button>
+        }
+
+        @if (ticket.status === 'Closed') {
+          <div class="text-muted">Tiketa eshte mbyll dhe eshte read-only.</div>
+        }
+      </div>
+    </div>
+
+    <div class="card my-4">
+      <div class="card-body">
+        <h4 class="card-title my-4">Comments</h4>
+
+        @if (ticket.comments.length === 0) {
+          <p class="text-muted">No comments.</p>
+        }
+
+        @if (ticket.comments.length > 0) {
+          <div>
+            @for (comment of ticket.comments; track comment.id) {
+              <div class="border rounded p-3 mb-3">
+                <div class="d-flex justify-content-between">
+                  <strong> Author: {{ comment.authorName }} </strong>
+
+                  <small class="text-muted">
+                    {{ comment.createdDate | date: '' }}
+                  </small>
+                </div>
+
+                <p class="mb-0 mt-2">
+                  {{ comment.body }}
+                </p>
+              </div>
+            }
+          </div>
+        }
+
+        <hr />
+
+        <h3 class="my-4">Shto Koment</h3>
+
+        @if (commentError) {
+          <div class="alert alert-danger">
+            {{ commentError }}
+          </div>
+        }
+
+        <div class="mb-3">
+          <label class="form-label"> Emri Yt </label>
+
+          <input
+            type="text"
+            class="form-control"
+            [(ngModel)]="commentAuthor"
+            placeholder="Sheno emrin"
+          />
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label"> Komenti </label>
+
+          <textarea
+            class="form-control"
+            rows="4"
+            [(ngModel)]="commentBody"
+            placeholder="Sheno koment..."
+          ></textarea>
+        </div>
+
+        <button
+          class="btn btn-primary btn-lg py-2 px-3"
+          (click)="addComment()"
+          [disabled]="ticket.status === 'Closed'"
+        >
+          Shto Koment
+        </button>
+      </div>
+    </div>
+
+    <div class="card mt-4">
+      <div class="card-body">
+        <h4 class="card-title mt-4">Assignment</h4>
+
+        @if (assignmentError) {
+          <div class="alert alert-danger">
+            {{ assignmentError }}
+          </div>
+        }
+
+        <label class="form-label" style="font-size: 1.3rem"> Assigned Agent </label>
+
+        <select
+          class="form-select"
+          [(ngModel)]="selectedAgentId"
+          [disabled]="ticket.status === 'Closed'"
+        >
+          <option [ngValue]="null">Unassigned</option>
+
+          @for (agent of agents; track agent.id) {
+            <option [ngValue]="agent.id" [disabled]="!agent.active">
+              {{ agent.fullName }}
+              @if (!agent.active) {
+                (Jo-Aktiv)
+              }
+            </option>
+          }
+        </select>
+
+        <button
+          class="btn btn-primary btn-lg px-3 py-2"
+          (click)="assignAgent()"
+          [disabled]="ticket.status === 'Closed'"
+        >
+          Save Assignment
+        </button>
+      </div>
+    </div>
+  }
+</div>

@@ -26,6 +26,8 @@ export interface Ticket {
   assignedAgent: Agent | null;
 
   isOverdue: boolean;
+
+  comments: TicketComment[];
 }
 
 export interface CreateTicket {
@@ -57,6 +59,27 @@ export interface TicketListResponse {
   pageSize: number;
   totalCount: number;
   totalPages: number;
+}
+
+export interface TicketComment {
+  id: number;
+  ticketId: number;
+  authorName: string;
+  body: string;
+  createdDate: string;
+}
+
+export interface CreateComment {
+  authorName: string;
+  body: string;
+}
+
+export interface AssignAgent {
+  assignedAgentId: number | null;
+}
+
+export interface ChangeStatus {
+  status: Ticket['status'];
 }
 
 @Injectable({
@@ -118,5 +141,19 @@ export class TicketsService {
 
   deleteTicket(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
+  addComment(ticketId: number, comment: CreateComment): Observable<any> {
+    return this.http.post(`${this.apiUrl}/${ticketId}/comments`, comment);
+  }
+
+  assignAgent(ticketId: number, assignedAgentId: number | null): Observable<Ticket> {
+    return this.http.put<Ticket>(`${this.apiUrl}/${ticketId}/assignment`, {
+      assignedAgentId,
+    });
+  }
+
+  changeStatus(ticketId: number, status: Ticket['status']): Observable<Ticket> {
+    return this.http.put<Ticket>(`${this.apiUrl}/${ticketId}/status`, { status });
   }
 }
