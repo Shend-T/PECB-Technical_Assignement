@@ -94,6 +94,7 @@
           <th>Assigned Agent</th>
           <th>Due Date</th>
           <th>Is Overdue</th>
+          <th>Get Detailed View</th>
         </tr>
       </thead>
 
@@ -138,6 +139,9 @@
               @if (ticket.isOverdue) {
                 <div class="text-danger fw-bold">Overdue</div>
               }
+            </td>
+            <td>
+              <button class="btn btn-primary" (click)="goToDetails(ticket.id)">Details</button>
             </td>
           </tr>
         }

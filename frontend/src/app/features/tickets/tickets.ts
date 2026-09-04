@@ -128,6 +128,12 @@ export class Tickets {
   }
 
   deleteTicket(id: number) {
+    const confirmed = window.confirm('A jeni sigurt per fshirjen e tiketes?');
+
+    if (!confirmed) {
+      return;
+    }
+
     this.ticketsService.deleteTicket(id).subscribe({
       next: () => {
         this.loadTickets();
@@ -135,7 +141,6 @@ export class Tickets {
         window.location.reload();
       },
       error: (error) => {
-        console.error('Error:', error);
         this.errorMessage = error.error.message;
         this.cdr.detectChanges();
       },

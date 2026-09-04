@@ -1,6 +1,7 @@
 import { Component, ChangeDetectorRef } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 
 import { Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
@@ -39,6 +40,7 @@ export class TicketList {
     private ticketsService: TicketsService,
     private agentsService: AgentsService,
     private cdr: ChangeDetectorRef,
+    private router: Router,
   ) {}
 
   ngOnInit() {
@@ -96,6 +98,9 @@ export class TicketList {
           this.cdr.detectChanges();
         },
       });
+  }
+  goToDetails(id: number) {
+    this.router.navigate(['/ticket', id]);
   }
   searchTickets() {
     this.page = 1;

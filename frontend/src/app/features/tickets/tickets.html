@@ -39,11 +39,19 @@
             <td>{{ ticket.dueDate }}</td>
             <td>{{ ticket.isOverdue }}</td>
             <td class="text-nowrap" style="width: 120px">
-              <button class="btn btn-warning btn-lg p-2 m-1" (click)="updateTicketForm(ticket)">
+              <button
+                class="btn btn-warning btn-lg p-2 m-1"
+                [disabled]="ticket.status === 'Closed'"
+                (click)="updateTicketForm(ticket)"
+              >
                 Update
               </button>
 
-              <button class="btn btn-danger btn-lg p-2 m-1" (click)="deleteTicket(ticket.id)">
+              <button
+                class="btn btn-danger btn-lg p-2 m-1"
+                [disabled]="ticket.status === 'Closed'"
+                (click)="deleteTicket(ticket.id)"
+              >
                 Delete
               </button>
             </td>
@@ -70,6 +78,9 @@
           formControlName="title"
           placeholder="Ticket title"
         />
+        @if (ticketForm.controls.title.touched && ticketForm.controls.title.errors?.['required']) {
+          <div class="text-danger mt-1">Duhet nje titull.</div>
+        }
       </div>
 
       <div class="mb-3">
@@ -80,6 +91,12 @@
           formControlName="customerName"
           placeholder="Customer name"
         />
+        @if (
+          ticketForm.controls.customerName.touched &&
+          ticketForm.controls.customerName.errors?.['required']
+        ) {
+          <div class="text-danger mt-1">Duhet emri juaj.</div>
+        }
       </div>
 
       <div class="mb-3">
@@ -88,8 +105,14 @@
           type="email"
           class="form-control form-control-lg"
           formControlName="customerEmail"
-          placeholder="customer@example.com"
+          placeholder="test@gmail.com"
         />
+        @if (
+          ticketForm.controls.customerEmail.touched &&
+          ticketForm.controls.customerEmail.errors?.['required']
+        ) {
+          <div class="text-danger mt-1">Duhet email-i juaj.</div>
+        }
       </div>
 
       <div class="mb-3">
@@ -122,6 +145,12 @@
           formControlName="assignedAgentId"
           placeholder="Agent ID"
         />
+        @if (
+          ticketForm.controls.assignedAgentId.touched &&
+          ticketForm.controls.assignedAgentId.errors?.['required']
+        ) {
+          <div class="text-danger mt-1">Duhet nje agjend.</div>
+        }
       </div>
 
       <div class="col-12 mb-3">
@@ -132,6 +161,12 @@
           formControlName="description"
           placeholder="Describe the issue..."
         ></textarea>
+        @if (
+          ticketForm.controls.description.touched &&
+          ticketForm.controls.description.errors?.['required']
+        ) {
+          <div class="text-danger mt-1">Duhet nje pershkrim.</div>
+        }
       </div>
 
       <button
