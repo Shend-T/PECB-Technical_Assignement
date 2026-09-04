@@ -5,6 +5,7 @@ using backend.DTOs.Comment;
 using backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using backend.DTOs.Error;
 
 namespace backend.Controllers;
 
@@ -107,7 +108,11 @@ public class TicketsController : ControllerBase
 
         if (ticket == null)
         {
-            return NotFound();
+            return NotFound(new ErrorDto
+                {
+                    error=ErrorCode.TicketNotFound,
+                    message="Tiketa nuk ekziston!"
+                });
         }
 
         return Ok(ToTicketDto(ticket));
@@ -118,10 +123,11 @@ public class TicketsController : ControllerBase
     {
         if (!Enum.IsDefined(typeof(Priority), dto.priority))
         {
-            return BadRequest(new
-            {
-                message = "Prioritet gabim."
-            });
+            return BadRequest(new ErrorDto
+                {
+                    error=ErrorCode.InvalidPriority,
+                    message="Prioritet Gabim!"
+                });
         }
 
         if (dto.assignedAgentId.HasValue)
@@ -131,17 +137,20 @@ public class TicketsController : ControllerBase
 
             if (agent == null)
             {
-                return BadRequest(new
+                return BadRequest(new ErrorDto
                 {
-                    message = "Agjendi i zgjedhur nuk ekziston."
+                    error=ErrorCode.AgentNotFound,
+                    message="Agjendi nuk ekziston!"
                 });
             }
 
             if (!agent.active)
             {
-                return BadRequest(new
+                return BadRequest(
+                    new ErrorDto
                 {
-                    message = "Nje agjend jo aktiv nuk mund ti jepet nje tiket."
+                    error=ErrorCode.AgentInactive,
+                    message="Agjendi i zgjedhur eshte jo aktiv!"
                 });
             }
         }
@@ -197,31 +206,40 @@ public class TicketsController : ControllerBase
 
         if (ticket == null)
         {
-            return NotFound();
+            return NotFound(new ErrorDto
+                {
+                    error=ErrorCode.TicketNotFound,
+                    message="Tiketa nuk ekziston!"
+                });
         }
 
         if (ticket.status == Status.Closed)
         {
-            return BadRequest(new
-            {
-                message = "Nje tiket e mbyller eshte `read-only`."
-            });
+            return BadRequest(
+                new ErrorDto
+                {
+                    error=ErrorCode.TicketClosed,
+                    message="Tiketa eshte mbyllur!"
+                });
         }
 
         if (!Enum.IsDefined(typeof(Priority), dto.priority))
         {
-            return BadRequest(new
-            {
-                message = "Prioritet gabim."
-            });
+            return BadRequest(
+                new ErrorDto
+                {
+                    error=ErrorCode.InvalidPriority,
+                    message="Prioritet Gabim!"
+                });
         }
 
         if (!Enum.IsDefined(typeof(Status), dto.status))
         {
-            return BadRequest(new
-            {
-                message = "Status gabim."
-            });
+            return BadRequest(new ErrorDto
+                {
+                    error=ErrorCode.InvalidStatus,
+                    message="Status Gabim!"
+                });
         }
 
         if (dto.assignedAgentId.HasValue)
@@ -231,17 +249,21 @@ public class TicketsController : ControllerBase
 
             if (agent == null)
             {
-                return BadRequest(new
+                return BadRequest(
+                    new ErrorDto
                 {
-                    message = "Agjendi qe po kerkoni nuk ekziston."
+                    error=ErrorCode.AgentNotFound,
+                    message="Agjendi nuk ekziston!"
                 });
             }
 
             if (!agent.active)
             {
-                return BadRequest(new
+                return BadRequest(
+                    new ErrorDto
                 {
-                    message = "Nje agjend jo-aktiv nuk mund t'i qaset tiketave."
+                    error=ErrorCode.AgentInactive,
+                    message="Agjendi jo aktiv!"
                 });
             }
         }
@@ -250,10 +272,11 @@ public class TicketsController : ControllerBase
         {
             if (!IsValidStatusTransition(ticket.status, dto.status))
             {
-                return BadRequest(new
+                return BadRequest(
+                    new ErrorDto
                 {
-                    message =
-                        $"Statusi nuk mund te kaloj nga: {ticket.status} ne {dto.status}."
+                    error=ErrorCode.InvalidStatusTransition,
+                    message=$"Statusi nuk mund te kaloj nga: {ticket.status} ne {dto.status}."
                 });
             }
         }
@@ -262,11 +285,12 @@ public class TicketsController : ControllerBase
         {
             if (!dto.assignedAgentId.HasValue)
             {
-                return BadRequest(new
-                {
-                    message =
-                        "Nje tiket duhet te kete nje agjend per te kaluar ne `In Progress`."
-                });
+                return BadRequest(
+                    new ErrorDto
+                    {
+                        error=ErrorCode.AgentNotAssigned,
+                        message=$"Tiketa nuk ka agjend te perzgjedhur"
+                    });
             }
 
             var assignedAgent = await _context.Agents
@@ -274,11 +298,12 @@ public class TicketsController : ControllerBase
 
             if (assignedAgent == null || !assignedAgent.active)
             {
-                return BadRequest(new
-                {
-                    message =
-                        "Nje tiket nuk mund t'kaloj ne In Progress nese agjendi nuk eshte aktiv."
-                });
+                return BadRequest(
+                    new ErrorDto
+                    {
+                        error=ErrorCode.InvalidStatusTransition,
+                        message=$"Nje tiket nuk mund t'kaloj ne In Progress nese agjendi nuk eshte aktiv."
+                    });
             }
         }
 
@@ -334,15 +359,23 @@ public class TicketsController : ControllerBase
 
         if (ticket == null)
         {
-            return NotFound();
+            return NotFound(
+                new ErrorDto
+                {
+                    error=ErrorCode.TicketNotFound,
+                    message="Tiketa nuk ekziston!"
+                }
+            );
         }
 
         if (ticket.status == Status.Closed)
         {
-            return BadRequest(new
-            {
-                message = "Nje tiket e mbyllur eshte `read-only`."
-            });
+            return BadRequest(
+                new ErrorDto
+                {
+                    error=ErrorCode.TicketClosed,
+                    message="Tiketa eshte mbyllur!"
+                });
         }
 
         if (dto.assignedAgentId.HasValue)
@@ -352,18 +385,22 @@ public class TicketsController : ControllerBase
 
             if (agent == null)
             {
-                return BadRequest(new
+                return BadRequest(
+                    new ErrorDto
                 {
-                    message = "Agjendi selektuar nuk ekziston."
+                    error=ErrorCode.AgentNotFound,
+                    message="Agjendi nuk ekziston!"
                 });
             }
 
             if (!agent.active)
             {
-                return BadRequest(new
-                {
-                    message = "Nje agjend jo aktiv nuk mund te merr tiket."
-                });
+                return BadRequest(
+                    new ErrorDto
+                    {
+                        error=ErrorCode.AgentInactive,
+                        message="Agjendi jo aktiv!"
+                    });
             }
         }
 
@@ -384,34 +421,45 @@ public class TicketsController : ControllerBase
 
         if (ticket == null)
         {
-            return NotFound();
+            return NotFound(
+                new ErrorDto
+                {
+                    error=ErrorCode.TicketNotFound,
+                    message="Tiketa nuk ekziston!"
+                }
+            );
         }
 
         if (ticket.status == Status.Closed)
         {
-            return BadRequest(new
-            {
-                message = "Nje tiket e mbyllur eshte `read-only`."
-            });
+            return BadRequest(
+                new ErrorDto
+                {
+                    error=ErrorCode.TicketClosed,
+                    message="Tiketa mbyllur!"
+                });
         }
 
         if (!Enum.IsDefined(typeof(Status), dto.status))
         {
-            return BadRequest(new
-            {
-                message = "Statusi i zgjedhur nuk ekziston."
-            });
+            return BadRequest(
+                new ErrorDto
+                {
+                    error=ErrorCode.InvalidStatus,
+                    message="Statusi nuk ekziston!"
+                });
         }
 
         if (ticket.status != dto.status)
         {
             if (!IsValidStatusTransition(ticket.status, dto.status))
             {
-                return BadRequest(new
-                {
-                    message =
-                        $"Status nuk mund te ndrroj nga {ticket.status} ne {dto.status}."
-                });
+                return BadRequest(
+                    new ErrorDto
+                    {
+                        error=ErrorCode.InvalidStatusTransition,
+                        message=$"Status nuk mund te ndrroj nga {ticket.status} ne {dto.status}."
+                    });
             }
         }
 
@@ -419,11 +467,12 @@ public class TicketsController : ControllerBase
         {
             if (!ticket.assignedAgentId.HasValue)
             {
-                return BadRequest(new
-                {
-                    message =
-                        "Nje tiket duhet te kete nje agjend para se te shkoje ne `In Progress`."
-                });
+                return BadRequest(
+                    new ErrorDto
+                    {
+                        error=ErrorCode.AgentNotAssigned,
+                        message="Tiketa nuk ka agjend"
+                    });
             }
 
             var agent = await _context.Agents
@@ -431,11 +480,12 @@ public class TicketsController : ControllerBase
 
             if (agent == null || !agent.active)
             {
-                return BadRequest(new
-                {
-                    message =
-                        "Nje tiket nuk mund te kaloj ne `In Progress` nese agjendi saj eshte jo aktiv."
-                });
+                return BadRequest(
+                    new ErrorDto
+                    {
+                        error=ErrorCode.InvalidStatusTransition,
+                        message="Nje tiket nuk mund te kaloj ne `In Progress` nese agjendi saj eshte jo aktiv."
+                    });
             }
         }
 
@@ -468,15 +518,23 @@ public class TicketsController : ControllerBase
 
         if (ticket == null)
         {
-            return NotFound();
+            return NotFound(
+                new ErrorDto
+                {
+                    error=ErrorCode.TicketNotFound,
+                    message="Tiketa nuk ekziston!"
+                }
+            );
         }
 
         if (ticket.status == Status.Closed)
         {
-            return BadRequest(new
-            {
-                message = "Nje tiket e mbyllur eshte `read-only` nuk mund te fshihet."
-            });
+            return BadRequest(
+                new ErrorDto
+                {
+                    error=ErrorCode.TicketClosed,
+                    message="Tiketa mbyllur!"
+                });
         }
 
         _context.Tickets.Remove(ticket);
@@ -584,7 +642,13 @@ public class TicketsController : ControllerBase
 
         if (!ticketExists)
         {
-            return NotFound();
+            return NotFound(
+                new ErrorDto
+                {
+                    error=ErrorCode.TicketNotFound,
+                    message="Tiketa nuk ekziston!"
+                }
+            );
         }
 
         var comments = await _context.Comments
@@ -612,15 +676,23 @@ public class TicketsController : ControllerBase
 
         if (ticket == null)
         {
-            return NotFound();
+            return NotFound(
+                new ErrorDto
+                {
+                    error=ErrorCode.TicketNotFound,
+                    message="Tiketa nuk ekziston!"
+                }
+            );
         }
 
         if (ticket.status == Status.Closed)
         {
-            return BadRequest(new
-            {
-                message = "Nje tiket e mbyllur nuk mund t'merr komente te reja."
-            });
+            return BadRequest(
+                new ErrorDto
+                {
+                    error=ErrorCode.TicketClosed,
+                    message="Tiketa mbyllur!"
+                });
         }
 
         var comment = new Comment

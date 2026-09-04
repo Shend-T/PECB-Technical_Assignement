@@ -1,6 +1,7 @@
 using backend.Data;
 using backend.Models;
 using backend.DTOs.Agent;
+using backend.DTOs.Error;
 using backend.Mappings;
 
 using Microsoft.AspNetCore.Mvc;
@@ -47,7 +48,13 @@ public class AgentsController : ControllerBase
 
         if (agent == null)
         {
-            return NotFound();
+            return NotFound(
+                new ErrorDto
+                {
+                    error=ErrorCode.AgentNotFound,
+                    message="Agjendi nuk ekziston"
+                }
+            );
         }
 
         return Ok(agent.ToDto());
@@ -61,17 +68,23 @@ public class AgentsController : ControllerBase
 
         if (emailExists)
         {
-            return Conflict(new {
-                message = "An agent with this email already exists! ( Nje agjend me kete email vetem se ekziston!)"
-            });
+            return Conflict(
+                new ErrorDto
+                {
+                    error=ErrorCode.DuplicateInstance,
+                    message="Nje agjend me kete email vetem se ekziston!"
+                }
+            );
         }
 
         if (!Enum.IsDefined(typeof(Department), dto.department))
         {
-            return BadRequest(new
-            {
-                message = "Invalid department! ( Departament jo valid!)"
-            });
+            return BadRequest(
+                new ErrorDto
+                {
+                    error=ErrorCode.InvalidDepartment,
+                    message="Departament jo valid!"
+                });
         }
 
         var agent = new Agent
@@ -107,17 +120,22 @@ public class AgentsController : ControllerBase
         
         if (emailExists)
         {
-            return Conflict(new {
-                message = "A different agent with this email already exists! ( Nje agjend tjeter me kete email vetem se ekziston!)"
-            });
+            return Conflict(
+                new ErrorDto
+                {
+                    error=ErrorCode.DuplicateInstance,
+                    message="Nje agjend tjeter me kete email vetem se ekziston!"
+                });
         }
 
         if (!Enum.IsDefined(typeof(Department), dto.department))
         {
-            return BadRequest(new
-            {
-                message = "Invalid department! ( Departament jo valid!)"
-            });
+            return BadRequest(
+                new ErrorDto
+                {
+                    error=ErrorCode.InvalidDepartment,
+                    message="Departament jo valid!"
+                });
         }
 
         agent.fullName = dto.fullName;
